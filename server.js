@@ -30,6 +30,31 @@ const trees = [];
 const stones = [];
 const walls = []; // Add this line to track walls
 
+// Helper function to broadcast player health updates
+function broadcastHealthUpdate(playerId) {
+  const player = players[playerId];
+  if (!player) return;
+
+  io.emit("playerHealthUpdate", {
+    playerId,
+    health: player.health,
+    maxHealth: config.player.health.max,
+    timestamp: Date.now(),
+    velocity: player.velocity,
+  });
+}
+
+// Helper function to broadcast inventory updates
+function broadcastInventoryUpdate(playerId) {
+  const player = players[playerId];
+  if (!player) return;
+
+  io.emit("playerInventoryUpdate", {
+    id: playerId,
+    inventory: player.inventory,
+  });
+}
+
 // Health system utility functions
 function damagePlayer(playerId, amount, attacker) {
   const player = players[playerId];
@@ -449,7 +474,7 @@ io.on("connection", (socket) => {
   socket.on("playerMovement", (movement) => {
     const player = players[socket.id];
     if (player && !player.isDead) {
-
+      // Apply velocity decay with knockback configuration
       if (player.lastKnockbackTime) {
         const elapsed = Date.now() - player.lastKnockbackTime;
         if (elapsed < config.player.knockback.duration) {
@@ -466,8 +491,7 @@ io.on("connection", (socket) => {
       player.x += player.velocity.x;
       player.y += player.velocity.y;
 
-
-      // Validate movement isn't too extreme
+      // Then handle normal movement
       const maxSpeed = config.moveSpeed * 1.5;
       const dx = movement.x - player.x;
       const dy = movement.y - player.y;
